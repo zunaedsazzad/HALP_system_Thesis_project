@@ -1,0 +1,9 @@
+﻿# Node/TypeScript monorepo
+**/node_modules/
+**/dist/
+**/build/
+**/.next/
+**/coverage/
+**/out/
+*.log
+.env*

@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HALP Issuer - Credential Approval</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #7d7676 0%, #ff9966 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      color: #f5576c;
+      margin-bottom: 10px;
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 0.95rem;
+    }
+
+    .stats {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      flex: 1;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #f5576c;
+    }
+
+    .stat-label {
+      color: #666;
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.3rem;
+      border-bottom: 2px solid #f5576c;
+      padding-bottom: 10px;
+    }
+
+    .request-list {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .request-item {
+      background: #f8f9fa;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 15px;
+      transition: border-color 0.3s;
+    }
+
+    .request-item:hover {
+      border-color: #f5576c;
+    }
+
+    .request-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 15px;
+    }
+
+    .request-id {
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #f5576c;
+      font-weight: bold;
+    }
+
+    .request-time {
+      font-size: 0.85rem;
+      color: #999;
+    }
+
+    .request-info {
+      margin: 8px 0;
+      font-size: 0.95rem;
+    }
+
+    .request-info strong {
+      color: #333;
+      min-width: 120px;
+      display: inline-block;
+    }
+
+    .request-type {
+      display: inline-block;
+      background: #f5576c;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .request-subject {
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #667eea;
+    }
+
+    .claim-data {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .request-actions {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .btn-approve {
+      background: #28a745;
+      color: white;
+      flex: 1;
+    }
+
+    .btn-approve:hover {
+      background: #218838;
+      transform: translateY(-1px);
+    }
+
+    .btn-reject {
+      background: #dc3545;
+      color: white;
+      flex: 1;
+    }
+
+    .btn-reject:hover {
+      background: #c82333;
+      transform: translateY(-1px);
+    }
+
+    .btn-refresh {
+      background: #17a2b8;
+      color: white;
+      padding: 12px 30px;
+      margin-bottom: 15px;
+    }
+
+    .btn-refresh:hover {
+      background: #138496;
+    }
+
+    .status {
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+    }
+
+    .status-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .status-info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .badge-pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .auto-refresh {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+    }
+
+    .auto-refresh input {
+      cursor: pointer;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .refreshing {
+      animation: pulse 1s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>🏛️ HALP Issuer Portal</h1>
+      <p class="subtitle">Review and approve credential requests</p>
+    </header>
+
+    <!-- Statistics -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-number" id="pendingCount">0</div>
+        <div class="stat-label">Pending Requests</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="approvedCount">0</div>
+        <div class="stat-label">Approved Today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="rejectedCount">0</div>
+        <div class="stat-label">Rejected Today</div>
+      </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div id="statusMessage" class="hidden"></div>
+
+    <!-- Main Content -->
+    <div class="card">
+      <h2>📋 Pending Credential Requests <span class="badge badge-pending" id="pendingBadge">0</span></h2>
+      
+      <div class="auto-refresh">
+        <input type="checkbox" id="autoRefresh" checked>
+        <label for="autoRefresh">Auto-refresh every 5 seconds</label>
+      </div>
+
+      <button class="btn-refresh" onclick="loadPendingRequests()">🔄 Refresh Now</button>
+      
+      <div id="requestList" class="request-list">
+        <div class="empty-state">
+          <div class="empty-state-icon">📭</div>
+          <p>No pending requests at the moment</p>
+          <p style="font-size: 0.85rem; margin-top: 10px;">Requests will appear here when users submit credential requests</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let approvedToday = 0;
+    let rejectedToday = 0;
+    let autoRefreshInterval = null;
+
+    // Load pending requests on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPendingRequests();
+      setupAutoRefresh();
+    });
+
+    // Setup auto-refresh
+    function setupAutoRefresh() {
+      const checkbox = document.getElementById('autoRefresh');
+      
+      if (checkbox.checked) {
+        startAutoRefresh();
+      }
+      
+      checkbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          startAutoRefresh();
+        } else {
+          stopAutoRefresh();
+        }
+      });
+    }
+
+    function startAutoRefresh() {
+      if (autoRefreshInterval) return;
+      autoRefreshInterval = setInterval(() => {
+        loadPendingRequests(true);
+      }, 5000);
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+      }
+    }
+
+    // Load pending requests
+    async function loadPendingRequests(silent = false) {
+      try {
+        const list = document.getElementById('requestList');
+        if (!silent) {
+          list.classList.add('refreshing');
+        }
+
+        const response = await fetch('/credentials/pending');
+        const data = await response.json();
+
+        if (data.success) {
+          updateStats(data.count);
+          
+          if (data.requests.length > 0) {
+            list.innerHTML = data.requests.map(req => renderRequest(req)).join('');
+          } else {
+            list.innerHTML = `
+              <div class="empty-state">
+                <div class="empty-state-icon">✅</div>
+                <p>All caught up! No pending requests.</p>
+              </div>
+            `;
+          }
+        }
+
+        setTimeout(() => list.classList.remove('refreshing'), 300);
+      } catch (error) {
+        if (!silent) {
+          showStatus('Error loading requests: ' + error.message, 'error');
+        }
+      }
+    }
+
+    // Update statistics
+    function updateStats(pendingCount) {
+      document.getElementById('pendingCount').textContent = pendingCount;
+      document.getElementById('pendingBadge').textContent = pendingCount;
+      document.getElementById('approvedCount').textContent = approvedToday;
+      document.getElementById('rejectedCount').textContent = rejectedToday;
+    }
+
+    // Render a single request
+    function renderRequest(req) {
+      const claimJson = JSON.stringify(req.claim, null, 2);
+      const requestedTime = new Date(req.requestedAt).toLocaleString();
+      
+      return `
+        <div class="request-item" id="request-${req.id}">
+          <div class="request-header">
+            <div class="request-id">${req.id}</div>
+            <div class="request-time">${requestedTime}</div>
+          </div>
+          
+          <div class="request-info">
+            <strong>Credential Type:</strong>
+            <span class="request-type">${req.type}</span>
+          </div>
+          
+          <div class="request-info">
+            <strong>Subject DID:</strong>
+            <span class="request-subject">${req.subject}</span>
+          </div>
+          
+          <div class="request-info">
+            <strong>Claims:</strong>
+          </div>
+          <div class="claim-data">${claimJson}</div>
+          
+          <div class="request-actions">
+            <button class="btn-approve" onclick="approveRequest('${req.id}')">
+              ✓ Approve & Sign
+            </button>
+            <button class="btn-reject" onclick="rejectRequest('${req.id}')">
+              ✗ Reject
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Approve a request
+    async function approveRequest(requestId) {
+      try {
+        showStatus('Approving and signing credential...', 'info');
+        
+        const response = await fetch('/credentials/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showStatus('✓ Credential approved and signed successfully!', 'success');
+          approvedToday++;
+          
+          // Remove the request from the list
+          const element = document.getElementById(`request-${requestId}`);
+          if (element) {
+            element.style.opacity = '0';
+            element.style.transform = 'scale(0.9)';
+            element.style.transition = 'all 0.3s';
+            setTimeout(() => {
+              loadPendingRequests();
+            }, 300);
+          }
+        } else {
+          showStatus('✗ Error: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showStatus('✗ Error approving request: ' + error.message, 'error');
+      }
+    }
+
+    // Reject a request
+    async function rejectRequest(requestId) {
+      const reason = prompt('Enter reason for rejection (optional):');
+      if (reason === null) return; // User cancelled
+      
+      try {
+        showStatus('Rejecting request...', 'info');
+        
+        const response = await fetch('/credentials/reject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId, reason })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showStatus('Request rejected', 'success');
+          rejectedToday++;
+          
+          // Remove the request from the list
+          const element = document.getElementById(`request-${requestId}`);
+          if (element) {
+            element.style.opacity = '0';
+            element.style.transform = 'scale(0.9)';
+            element.style.transition = 'all 0.3s';
+            setTimeout(() => {
+              loadPendingRequests();
+            }, 300);
+          }
+        } else {
+          showStatus('✗ Error: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showStatus('✗ Error rejecting request: ' + error.message, 'error');
+      }
+    }
+
+    // Show status message
+    function showStatus(message, type) {
+      const statusEl = document.getElementById('statusMessage');
+      statusEl.className = `status status-${type}`;
+      statusEl.textContent = message;
+      statusEl.classList.remove('hidden');
+
+      setTimeout(() => {
+        statusEl.classList.add('hidden');
+      }, 5000);
+    }
+  </script>
+</body>
+</html>

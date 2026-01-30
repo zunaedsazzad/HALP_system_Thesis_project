@@ -1,0 +1,27 @@
+{
+  "name": "halp-circuits",
+  "version": "1.0.0",
+  "description": "HALP Authentication Circom Circuits - Groth16 ZKP",
+  "scripts": {
+    "compile": "circom halp-auth.circom --r1cs --wasm --sym -o build -l node_modules",
+    "setup": "node scripts/trusted-setup.js",
+    "setup:hermez": "node scripts/trusted-setup.js --hermez",
+    "setup:skip-ptau": "node scripts/trusted-setup.js --skip-ptau",
+    "export-keys": "node scripts/export-keys.js",
+    "build": "npm run compile && npm run setup && npm run export-keys",
+    "build:prod": "npm run compile && npm run setup:hermez && npm run export-keys",
+    "clean": "rimraf build && rimraf ../wallet-sdk/circuits && rimraf ../verifier-service/circuits",
+    "info": "snarkjs r1cs info build/halp-auth.r1cs",
+    "verify-zkey": "snarkjs zkey verify build/halp-auth.r1cs build/pot_final.ptau build/halp-auth_final.zkey"
+  },
+  "dependencies": {
+    "circomlib": "^2.0.5",
+    "snarkjs": "^0.7.4"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

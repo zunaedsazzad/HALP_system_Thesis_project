@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HALP Wallet - Secure Credential Vault</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    @keyframes matrixRain {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100vh); }
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 0 3px rgba(0, 255, 65, 0.3), 0 0 6px rgba(0, 255, 65, 0.2); }
+      50% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.4), 0 0 10px rgba(0, 255, 65, 0.3); }
+    }
+
+    @keyframes scanLine {
+      0% { top: 0; }
+      100% { top: 100%; }
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #1e1e2e;
+      background-image: 
+        radial-gradient(ellipse at top, #2a2a3e 0%, #1e1e2e 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #cdd6f4;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 50% 50%, rgba(137, 180, 250, 0.03) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    header {
+      background: linear-gradient(135deg, rgba(137, 180, 250, 0.15) 0%, rgba(203, 166, 247, 0.15) 50%, rgba(245, 194, 231, 0.15) 100%);
+      border: 1px solid rgba(137, 180, 250, 0.3);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(137, 180, 250, 0.2);
+      backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(137, 180, 250, 0.08), transparent);
+      animation: shimmer 6s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    h1 {
+      background: linear-gradient(135deg, #89b4fa 0%, #cba6f7 50%, #f5c2e7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+      font-size: 1.9rem;
+      filter: drop-shadow(0 2px 12px rgba(137, 180, 250, 0.3));
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h1::before {
+      content: '🔐';
+      font-size: 1.8rem;
+      filter: drop-shadow(0 2px 4px rgba(88, 166, 255, 0.4));
+    }
+
+    .subtitle {
+      color: #a6adc8;
+      font-size: 0.95rem;
+      letter-spacing: 0.01em;
+      opacity: 0.9;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: linear-gradient(135deg, rgba(137, 180, 250, 0.08) 0%, rgba(166, 227, 161, 0.08) 50%, rgba(245, 194, 231, 0.08) 100%);
+      border: 1px solid rgba(137, 180, 250, 0.25);
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 4px 20px rgba(137, 180, 250, 0.12), 0 0 60px rgba(137, 180, 250, 0.05);
+      position: relative;
+      backdrop-filter: blur(12px);
+    }
+
+    .card h2 {
+      background: linear-gradient(135deg, #89b4fa 0%, #cba6f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 20px;
+      font-size: 1.15rem;
+      border-bottom: 1px solid rgba(137, 180, 250, 0.2);
+      padding-bottom: 14px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #b4befe;
+      font-weight: 500;
+      font-size: 0.875rem;
+      letter-spacing: 0.01em;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid rgba(137, 180, 250, 0.2);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: rgba(30, 30, 46, 0.5);
+      color: #cdd6f4;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      transition: all 0.2s ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #4ade80;
+      box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.15);
+      background: rgba(30, 30, 46, 0.7);
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: rgba(166, 173, 200, 0.5);
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+      font-size: 0.85rem;
+    }
+
+    button {
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%);
+      color: #1e1e2e;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.25s ease;
+      width: 100%;
+      letter-spacing: 0.01em;
+      box-shadow: 0 4px 16px rgba(74, 222, 128, 0.35), 0 0 30px rgba(34, 197, 94, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.5s, height 0.5s;
+    }
+
+    button:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    button:hover {
+      background: linear-gradient(135deg, #5ae88a 0%, #34d566 50%, #1bb556 100%);
+      box-shadow: 0 8px 24px rgba(74, 222, 128, 0.45), 0 0 40px rgba(34, 197, 94, 0.35);
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .credentials-list {
+      max-height: 600px;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+
+    .credentials-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .credentials-list::-webkit-scrollbar-track {
+      background: rgba(30, 30, 46, 0.3);
+      border-radius: 4px;
+    }
+
+    .credentials-list::-webkit-scrollbar-thumb {
+      background: rgba(137, 180, 250, 0.3);
+      border-radius: 4px;
+    }
+
+    .credential-item {
+      background: linear-gradient(135deg, rgba(137, 180, 250, 0.06) 0%, rgba(180, 190, 254, 0.06) 50%, rgba(245, 194, 231, 0.06) 100%);
+      border: 1px solid rgba(137, 180, 250, 0.25);
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 14px;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .credential-item::before {
+      content: '●';
+      position: absolute;
+      top: 18px;
+      left: -10px;
+      color: #89b4fa;
+      font-size: 0.9rem;
+      opacity: 0.7;
+    }
+
+    .credential-item:hover {
+      border-color: rgba(203, 166, 247, 0.5);
+      box-shadow: 0 6px 24px rgba(137, 180, 250, 0.25), 0 0 40px rgba(203, 166, 247, 0.15);
+      transform: translateX(4px);
+      background: linear-gradient(135deg, rgba(137, 180, 250, 0.1) 0%, rgba(180, 190, 254, 0.1) 50%, rgba(245, 194, 231, 0.1) 100%);
+    }credential-item:hover {
+      border-color: #00d4ff;
+      box-shadow: 0 0 20px rgba(0, 255, 65, 0.4);
+      transform: translateX(5px);
+    }
+
+    .credential-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+    .credential-id {
+      font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+      font-size: 0.75rem;
+      color: #a6adc8;
+      font-weight: 500;
+      word-break: break-all;
+      opacity: 0.9;
+    }
+
+    .credential-type {
+      display: inline-block;
+      background: linear-gradient(135deg, rgba(166, 227, 161, 0.2) 0%, rgba(137, 180, 250, 0.2) 100%);
+      color: #a6e3a1;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      margin-right: 6px;
+      margin-bottom: 6px;
+      font-weight: 500;
+      border: 1px solid rgba(166, 227, 161, 0.4);
+    }
+
+    .credential-info {
+      font-size: 0.875rem;
+      color: #cdd6f4;
+      margin: 7px 0;
+      line-height: 1.5;
+    text-shadow: 0 0 3px #00ff41;
+  }
+
+    .credential-actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-small {
+      padding: 8px 14px;
+      font-size: 0.8rem;
+      width: auto;
+      flex: 1;
+      font-weight: 600;
+    }
+
+    .btn-verify {
+      background: #22c55e;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(34, 197, 94, 0.25);
+    }
+
+    .btn-verify:hover {
+      background: #16a34a;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+    }
+
+    .btn-delete {
+      background: #ef4444;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+    }
+
+    .btn-delete:hover {
+      background: #dc2626;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+    }
+
+    .btn-view {
+      background: #3b82f6;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
+    }
+
+    .btn-view:hover {
+      background: #2563eb;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    }
+
+    .status {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+      border: 1px solid;
+    }
+
+    .status-success {
+      background: rgba(166, 227, 161, 0.12);
+      color: #a6e3a1;
+      border-color: rgba(166, 227, 161, 0.3);
+    }
+
+    .status-error {
+      background: rgba(243, 139, 168, 0.12);
+      color: #f38ba8;
+      border-color: rgba(243, 139, 168, 0.3);
+    }
+
+    .status-info {
+      background: rgba(137, 180, 250, 0.12);
+      color: #89b4fa;
+      border-color: rgba(137, 180, 250, 0.3);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 3px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .badge-success {
+      background: rgba(166, 227, 161, 0.2);
+      color: #a6e3a1;
+      border: 1px solid rgba(166, 227, 161, 0.3);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(17, 17, 27, 0.85) 0%, rgba(30, 30, 46, 0.85) 100%);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(12px);
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: linear-gradient(135deg, rgba(49, 50, 68, 0.95) 0%, rgba(30, 30, 46, 0.95) 100%);
+      border: 1px solid rgba(137, 180, 250, 0.25);
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 700px;
+      max-height: 85vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(16px);
+    }
+
+    .modal-content::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .modal-content::-webkit-scrollbar-track {
+      background: rgba(30, 30, 46, 0.4);
+      border-radius: 4px;
+    }
+
+    .modal-content::-webkit-scrollbar-thumb {
+      background: rgba(137, 180, 250, 0.4);
+      border-radius: 4px;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      font-size: 1.8rem;
+      cursor: pointer;
+      color: #a6adc8;
+      background: none;
+      border: none;
+      width: auto;
+      padding: 0;
+      transition: all 0.25s;
+    }
+
+    .modal-close:hover {
+      background: linear-gradient(135deg, #89b4fa 0%, #cba6f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      transform: rotate(90deg);
+      filter: drop-shadow(0 0 8px rgba(137, 180, 250, 0.5));
+    }
+
+    pre {
+      background: rgba(17, 17, 27, 0.6);
+      border: 1px solid rgba(137, 180, 250, 0.2);
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      color: #cdd6f4;
+      line-height: 1.6;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 64px 20px;
+      color: #a6adc8;
+    }
+
+    .empty-state-icon {
+      font-size: 3.5rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .wallet-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, rgba(74, 222, 128, 0.12) 0%, rgba(34, 197, 94, 0.12) 100%);
+      border: 1px solid rgba(74, 222, 128, 0.35);
+      border-radius: 10px;
+      padding: 22px;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(74, 222, 128, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(74, 222, 128, 0.3), 0 0 40px rgba(34, 197, 94, 0.25);
+      border-color: rgba(74, 222, 128, 0.55);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 600;
+      filter: drop-shadow(0 2px 8px rgba(74, 222, 128, 0.4));
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 6px;
+    }
+
+    /* Authentication Card Styles */
+    .btn-auth {
+      background: linear-gradient(135deg, #cba6f7 0%, #89b4fa 100%);
+      color: #1e1e2e;
+      box-shadow: 0 2px 6px rgba(203, 166, 247, 0.25);
+    }
+
+    .btn-auth:hover {
+      background: linear-gradient(135deg, #d4b5fa 0%, #9bc4fb 100%);
+      box-shadow: 0 4px 12px rgba(203, 166, 247, 0.35);
+    }
+
+    .auth-flow {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    @media (max-width: 600px) {
+      .auth-flow {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .auth-step {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .auth-step.active {
+      border-color: #f9e2af;
+      background: rgba(249, 226, 175, 0.1);
+    }
+
+    .auth-step.success {
+      border-color: #a6e3a1;
+      background: rgba(166, 227, 161, 0.1);
+    }
+
+    .auth-step.error {
+      border-color: #f38ba8;
+      background: rgba(243, 139, 168, 0.1);
+    }
+
+    .auth-step-icon {
+      font-size: 1.3rem;
+      margin-bottom: 6px;
+    }
+
+    .auth-step-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #cdd6f4;
+    }
+
+    .auth-step-status {
+      font-size: 0.7rem;
+      color: #6c7086;
+      margin-top: 4px;
+    }
+
+    .auth-step.success .auth-step-status {
+      color: #a6e3a1;
+    }
+
+    .auth-modal .modal-content {
+      max-width: 800px;
+    }
+
+    .attribute-list {
+      margin: 16px 0;
+    }
+
+    .attribute-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .attribute-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #a6e3a1;
+    }
+
+    .attribute-name {
+      font-weight: 500;
+      color: #89b4fa;
+      min-width: 120px;
+    }
+
+    .attribute-value {
+      color: #cdd6f4;
+      flex: 1;
+    }
+
+    .session-result {
+      background: linear-gradient(135deg, rgba(166, 227, 161, 0.1), rgba(137, 180, 250, 0.1));
+      border: 1px solid rgba(166, 227, 161, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .session-badge {
+      background: #a6e3a1;
+      color: #1e1e2e;
+      padding: 6px 14px;
+      border-radius: 16px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+
+    .token-box {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      word-break: break-all;
+      color: #89b4fa;
+      margin-top: 8px;
+    }
+
+    .privacy-box {
+      background: rgba(203, 166, 247, 0.1);
+      border: 1px solid rgba(203, 166, 247, 0.3);
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 16px;
+    }
+
+    .privacy-box h4 {
+      color: #cba6f7;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+    }
+
+    .privacy-box ul {
+      list-style: none;
+      color: #a6adc8;
+      font-size: 0.85rem;
+    }
+
+    .privacy-box li {
+      padding: 4px 0;
+    }
+
+    .privacy-box li::before {
+      content: '✓ ';
+      color: #a6e3a1;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Enhanced Authentication Flow Styles */
+    .auth-flow-detailed {
+      margin: 20px 0;
+    }
+
+    .auth-step-detailed {
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .auth-step-detailed.active {
+      border-color: #f9e2af;
+      background: rgba(249, 226, 175, 0.08);
+    }
+
+    .auth-step-detailed.success {
+      border-color: #a6e3a1;
+      background: rgba(166, 227, 161, 0.08);
+    }
+
+    .auth-step-detailed.error {
+      border-color: #f38ba8;
+      background: rgba(243, 139, 168, 0.08);
+    }
+
+    .auth-step-number {
+      width: 36px;
+      height: 36px;
+      background: rgba(137, 180, 250, 0.2);
+      border: 2px solid rgba(137, 180, 250, 0.4);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #89b4fa;
+      flex-shrink: 0;
+    }
+
+    .auth-step-detailed.active .auth-step-number {
+      background: rgba(249, 226, 175, 0.3);
+      border-color: #f9e2af;
+      color: #f9e2af;
+    }
+
+    .auth-step-detailed.success .auth-step-number {
+      background: rgba(166, 227, 161, 0.3);
+      border-color: #a6e3a1;
+      color: #a6e3a1;
+    }
+
+    .auth-step-detailed.error .auth-step-number {
+      background: rgba(243, 139, 168, 0.3);
+      border-color: #f38ba8;
+      color: #f38ba8;
+    }
+
+    .auth-step-content {
+      flex: 1;
+    }
+
+    .auth-step-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .auth-step-header .auth-step-icon {
+      font-size: 1.1rem;
+    }
+
+    .auth-step-header .auth-step-title {
+      font-weight: 600;
+      color: #cdd6f4;
+      font-size: 0.95rem;
+    }
+
+    .auth-step-status-badge {
+      margin-left: auto;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(108, 112, 134, 0.3);
+      color: #6c7086;
+    }
+
+    .auth-step-detailed.active .auth-step-status-badge {
+      background: rgba(249, 226, 175, 0.2);
+      color: #f9e2af;
+    }
+
+    .auth-step-detailed.success .auth-step-status-badge {
+      background: rgba(166, 227, 161, 0.2);
+      color: #a6e3a1;
+    }
+
+    .auth-step-detailed.error .auth-step-status-badge {
+      background: rgba(243, 139, 168, 0.2);
+      color: #f38ba8;
+    }
+
+    .auth-step-description {
+      font-size: 0.8rem;
+      color: #6c7086;
+      margin-bottom: 8px;
+    }
+
+    .auth-step-detail {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      color: #89b4fa;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: none;
+    }
+
+    .auth-step-detailed.active .auth-step-detail,
+    .auth-step-detailed.success .auth-step-detail,
+    .auth-step-detailed.error .auth-step-detail {
+      display: block;
+    }
+
+    .auth-step-detail.has-content {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>HALP SECURE WALLET</h1>
+      <p class="subtitle">◢ PRIVACY-PRESERVING CREDENTIAL VAULT ◣</p>
+    </header>
+
+    <!-- Wallet Stats -->
+    <div class="wallet-stats">
+      <div class="stat-card">
+        <div class="stat-value" id="credentialCount">0</div>
+        <div class="stat-label">Credentials</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">🔒</div>
+        <div class="stat-label">Encrypted</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">BBS+</div>
+        <div class="stat-label">Signature Type</div>
+      </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div id="statusMessage" class="hidden"></div>
+
+    <!-- Main Grid -->
+    <div class="grid">
+      <!-- Request Credential Card -->
+      <div class="card">
+        <h2>⚡ REQUEST CREDENTIAL</h2>
+        <form id="requestForm">
+          <div class="form-group">
+            <label for="issuerUrl">▸ ISSUER ENDPOINT</label>
+            <input 
+              type="text" 
+              id="issuerUrl" 
+              placeholder="http://localhost:3001/credentials/issue"
+              value="http://localhost:3001/credentials/issue"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="subjectId">▸ SUBJECT DID</label>
+            <input 
+              type="text" 
+              id="subjectId" 
+              placeholder="did:example:alice"
+              value="did:example:alice"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="credentialType">▸ CREDENTIAL TYPE</label>
+            <input 
+              type="text" 
+              id="credentialType" 
+              placeholder="UniversityDegree"
+              value="ExampleCredential"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="claimData">▸ CLAIM DATA (JSON)</label>
+            <textarea 
+              id="claimData" 
+              placeholder='{"name": "Alice", "degree": "Computer Science"}'
+            >{"name": "Alice", "age": 25}</textarea>
+          </div>
+
+          <button type="submit">⚡ INITIATE REQUEST</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Credentials List -->
+    <div class="card">
+      <h2>🗄️ CREDENTIAL VAULT <span class="badge badge-success" id="credentialCountBadge">0</span></h2>
+      <div id="credentialsList" class="credentials-list">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔓</div>
+          <p>VAULT EMPTY - REQUEST CREDENTIALS TO BEGIN</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Authenticate Card -->
+    <div class="card">
+      <h2>🔐 AUTHENTICATE WITH VERIFIER</h2>
+      <p style="color: #a6adc8; margin-bottom: 16px;">Use zero-knowledge proofs to authenticate with a verifier while preserving your privacy.</p>
+      
+      <!-- Authentication Flow - Detailed Steps -->
+      <div class="auth-flow-detailed">
+        <div class="auth-step-detailed" id="authStep1">
+          <div class="auth-step-number">1</div>
+          <div class="auth-step-content">
+            <div class="auth-step-header">
+              <span class="auth-step-icon">📨</span>
+              <span class="auth-step-title">Get Challenge</span>
+              <span class="auth-step-status-badge" id="authStep1Badge">Waiting</span>
+            </div>
+            <div class="auth-step-description">Request authentication challenge from verifier service</div>
+            <div class="auth-step-detail" id="authStep1Detail"></div>
+          </div>
+        </div>
+        
+        <div class="auth-step-detailed" id="authStep2">
+          <div class="auth-step-number">2</div>
+          <div class="auth-step-content">
+            <div class="auth-step-header">
+              <span class="auth-step-icon">✍️</span>
+              <span class="auth-step-title">Selective Disclosure</span>
+              <span class="auth-step-status-badge" id="authStep2Badge">Waiting</span>
+            </div>
+            <div class="auth-step-description">Choose which credential attributes to reveal to verifier</div>
+            <div class="auth-step-detail" id="authStep2Detail"></div>
+          </div>
+        </div>
+        
+        <div class="auth-step-detailed" id="authStep3">
+          <div class="auth-step-number">3</div>
+          <div class="auth-step-content">
+            <div class="auth-step-header">
+              <span class="auth-step-icon">🔒</span>
+              <span class="auth-step-title">Generate ZK Proof</span>
+              <span class="auth-step-status-badge" id="authStep3Badge">Waiting</span>
+            </div>
+            <div class="auth-step-description">Create hybrid SNARK + BBS+ proof with master secret binding</div>
+            <div class="auth-step-detail" id="authStep3Detail"></div>
+          </div>
+        </div>
+        
+        <div class="auth-step-detailed" id="authStep4">
+          <div class="auth-step-number">4</div>
+          <div class="auth-step-content">
+            <div class="auth-step-header">
+              <span class="auth-step-icon">📤</span>
+              <span class="auth-step-title">Submit & Verify</span>
+              <span class="auth-step-status-badge" id="authStep4Badge">Waiting</span>
+            </div>
+            <div class="auth-step-description">Send proof to verifier and receive session token</div>
+            <div class="auth-step-detail" id="authStep4Detail"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="verifierUrl">▸ VERIFIER ENDPOINT</label>
+        <input 
+          type="text" 
+          id="verifierUrl" 
+          placeholder="http://localhost:3002"
+          value="http://localhost:3002"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="authCredentialSelect">▸ SELECT CREDENTIAL</label>
+        <select id="authCredentialSelect">
+          <option value="">-- Select a credential --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="authDomain">▸ DOMAIN</label>
+        <input 
+          type="text" 
+          id="authDomain" 
+          placeholder="example.com"
+          value="halp.demo"
+        >
+      </div>
+
+      <button onclick="startAuthentication()" id="startAuthBtn">🔐 START AUTHENTICATION</button>
+      <button style="margin-top: 10px; background: linear-gradient(135deg, #89b4fa 0%, #cba6f7 100%);" onclick="openVerifierUI()">🌐 OPEN VERIFIER PORTAL</button>
+
+      <div id="authResultArea" class="hidden" style="margin-top: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- Modal for viewing credential details -->
+  <div id="credentialModal" class="modal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h2 style="color: #00ff41; text-shadow: 0 0 10px #00ff41;">📋 CREDENTIAL DATA</h2>
+      <pre id="credentialDetails"></pre>
+    </div>
+  </div>
+
+  <!-- Modal for authentication with selective disclosure -->
+  <div id="authModal" class="modal auth-modal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeAuthModal()">&times;</button>
+      <h2 style="background: linear-gradient(135deg, #cba6f7 0%, #89b4fa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🔐 AUTHENTICATE WITH SELECTIVE DISCLOSURE</h2>
+      
+      <p style="color: #a6adc8; margin-bottom: 20px;">Select which attributes to reveal to the verifier. Unselected attributes will remain private.</p>
+
+      <div class="form-group">
+        <label>Challenge from Verifier:</label>
+        <div id="authChallengeDisplay" class="token-box">Fetching challenge...</div>
+      </div>
+
+      <div class="form-group">
+        <label>▸ ATTRIBUTES TO DISCLOSE</label>
+        <div id="attributesList" class="attribute-list">
+          <p style="color: #6c7086;">Loading credential attributes...</p>
+        </div>
+      </div>
+
+      <button onclick="submitAuthProof()">🔐 GENERATE & SUBMIT PROOF</button>
+      <button class="btn-secondary" style="margin-top: 10px; width: 100%;" onclick="closeAuthModal()">Cancel</button>
+
+      <div id="authModalResult" class="hidden"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api/wallet';
+
+    // Load credentials on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadCredentials();
+    });
+
+    // Request Credential Form
+    document.getElementById('requestForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const issuerUrl = document.getElementById('issuerUrl').value;
+      const subjectId = document.getElementById('subjectId').value;
+      const credentialType = document.getElementById('credentialType').value;
+      const claimData = document.getElementById('claimData').value;
+
+      try {
+        const claim = JSON.parse(claimData);
+        
+        showStatus('Requesting credential...', 'info');
+
+        const response = await fetch(`${API_BASE}/request-credential`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            issuerUrl,
+            credentialData: {
+              subject: subjectId,
+              type: credentialType,
+              claim
+            }
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          if (data.status === 'pending') {
+            // Show pending status and start polling
+            showStatus(`⏳ Request submitted! Request ID: ${data.requestId}. Waiting for issuer approval...`, 'info');
+            startPollingForApproval(data.requestId, issuerUrl);
+          } else {
+            // Direct issuance (legacy)
+            showStatus('✓ Credential received and stored!', 'success');
+            loadCredentials();
+          }
+        } else {
+          showStatus('✗ Error: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showStatus('✗ Error: ' + error.message, 'error');
+      }
+    });
+
+    // Poll for request approval
+    let pollingIntervals = new Map();
+    
+    function startPollingForApproval(requestId, issuerUrl) {
+      // Stop any existing poll for this request
+      if (pollingIntervals.has(requestId)) {
+        clearInterval(pollingIntervals.get(requestId));
+      }
+      
+      let attempts = 0;
+      const maxAttempts = 60; // 5 minutes (5 seconds * 60)
+      
+      const intervalId = setInterval(async () => {
+        attempts++;
+        
+        try {
+          const response = await fetch(`${API_BASE}/check-request/${requestId}?issuerUrl=${encodeURIComponent(issuerUrl)}`);
+          const data = await response.json();
+          
+          if (data.success && data.status === 'approved') {
+            clearInterval(intervalId);
+            pollingIntervals.delete(requestId);
+            showStatus('✅ Credential approved and stored!', 'success');
+            loadCredentials();
+          } else if (data.success && data.status === 'rejected') {
+            clearInterval(intervalId);
+            pollingIntervals.delete(requestId);
+            showStatus('❌ Credential request was rejected by issuer', 'error');
+          } else if (attempts >= maxAttempts) {
+            clearInterval(intervalId);
+            pollingIntervals.delete(requestId);
+            showStatus('⏱️ Request timeout. Check with issuer manually.', 'error');
+          }
+        } catch (error) {
+          console.error('Polling error:', error);
+        }
+      }, 5000); // Poll every 5 seconds
+      
+      pollingIntervals.set(requestId, intervalId);
+    }
+
+    // Load all credentials
+    async function loadCredentials() {
+      try {
+        const response = await fetch(`${API_BASE}/credentials`);
+        const data = await response.json();
+
+        const list = document.getElementById('credentialsList');
+        const countBadge = document.getElementById('credentialCountBadge');
+        const countStat = document.getElementById('credentialCount');
+
+        if (data.success && data.credentials.length > 0) {
+          countBadge.textContent = data.credentials.length;
+          countStat.textContent = data.credentials.length;
+          list.innerHTML = data.credentials.map(item => renderCredential(item)).join('');
+        } else {
+          countBadge.textContent = '0';
+          countStat.textContent = '0';
+          list.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">🔓</div>
+              <p>VAULT EMPTY - REQUEST CREDENTIALS TO BEGIN</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        showStatus('✗ ERROR: ' + error.message, 'error');
+      }
+    }
+
+    // Render a single credential
+    function renderCredential(item) {
+      const cred = item.credential;
+      const issuer = typeof cred.issuer === 'string' ? cred.issuer : cred.issuer.id;
+      const issuerName = typeof cred.issuer === 'object' ? cred.issuer.name : '';
+      const subject = cred.credentialSubject?.id || 'Unknown';
+      
+      return `
+        <div class="credential-item">
+          <div class="credential-header">
+            <div>
+              <div class="credential-id">◆ ${cred.id}</div>
+              <div style="margin-top: 5px;">
+                ${cred.type.filter(t => t !== 'VerifiableCredential').map(t => 
+                  `<span class="credential-type">▸ ${t}</span>`
+                ).join('')}
+              </div>
+            </div>
+          </div>
+          <div class="credential-info"><strong>ISSUER:</strong> ${issuerName || issuer}</div>
+          <div class="credential-info"><strong>SUBJECT:</strong> ${subject}</div>
+          <div class="credential-info"><strong>VALID FROM:</strong> ${new Date(cred.validFrom).toLocaleString()}</div>
+          <div class="credential-info"><strong>STORED:</strong> ${new Date(item.storedAt).toLocaleString()}</div>
+          <div class="credential-info"><strong>SIGNATURE:</strong> <span style="color: #22c55e;">BBS+</span></div>
+          <div class="credential-actions">
+            <button class="btn-small btn-view" onclick="viewCredential('${cred.id}')">📋 VIEW</button>
+            <button class="btn-small btn-verify" onclick="verifyCredential('${cred.id}')">✓ VERIFY</button>
+            <button class="btn-small btn-delete" onclick="deleteCredential('${cred.id}')">🗑 DELETE</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // View credential details
+    async function viewCredential(id) {
+      try {
+        const response = await fetch(`${API_BASE}/credentials/${id}`);
+        const data = await response.json();
+
+        if (data.success) {
+          const displayData = {
+            credential: data.credential,
+            storedAt: data.storedAt
+          };
+          document.getElementById('credentialDetails').textContent = 
+            JSON.stringify(displayData, null, 2);
+          document.getElementById('credentialModal').classList.add('show');
+        }
+      } catch (error) {
+        showStatus('✗ Error: ' + error.message, 'error');
+      }
+    }
+
+    // Verify credential
+    async function verifyCredential(id) {
+      try {
+        showStatus('Verifying credential with BBS+ signature...', 'info');
+        
+        const verifyResponse = await fetch(`${API_BASE}/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credentialId: id })
+        });
+
+        const verifyData = await verifyResponse.json();
+
+        if (verifyData.success && verifyData.verified) {
+          showStatus('✓ CREDENTIAL VERIFIED - SIGNATURE VALID', 'success');
+        } else {
+          showStatus('✗ VERIFICATION FAILED - INVALID SIGNATURE', 'error');
+        }
+      } catch (error) {
+        showStatus('✗ ERROR: ' + error.message, 'error');
+      }
+    }
+
+    // Delete credential
+    async function deleteCredential(id) {
+      if (!confirm('⚠ CONFIRM DELETION - This action cannot be undone.')) {
+        return;
+      }
+
+      try {
+        showStatus('DELETING CREDENTIAL...', 'info');
+        
+        const response = await fetch(`${API_BASE}/credentials/${id}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showStatus('✓ CREDENTIAL DELETED FROM VAULT', 'success');
+          loadCredentials();
+        } else {
+          showStatus('✗ DELETION FAILED: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showStatus('✗ ERROR: ' + error.message, 'error');
+      }
+    }
+
+    // Close modal
+    function closeModal() {
+      document.getElementById('credentialModal').classList.remove('show');
+    }
+
+    // Show status message
+    function showStatus(message, type) {
+      const statusEl = document.getElementById('statusMessage');
+      statusEl.className = `status status-${type}`;
+      statusEl.textContent = message;
+      statusEl.classList.remove('hidden');
+
+      setTimeout(() => {
+        statusEl.classList.add('hidden');
+      }, 5000);
+    }
+
+    // ========== AUTHENTICATION FUNCTIONS ==========
+    
+    let currentChallenge = null;
+    let selectedCredentialForAuth = null;
+
+    // Update credential dropdown for authentication
+    function updateAuthCredentialDropdown(credentials) {
+      const select = document.getElementById('authCredentialSelect');
+      select.innerHTML = '<option value="">-- Select a credential --</option>';
+      
+      credentials.forEach(item => {
+        const cred = item.credential;
+        const type = cred.type.filter(t => t !== 'VerifiableCredential').join(', ') || 'Credential';
+        const option = document.createElement('option');
+        option.value = cred.id;
+        option.textContent = `${type} - ${cred.id.substring(0, 30)}...`;
+        select.appendChild(option);
+      });
+    }
+
+    // Open verifier portal
+    function openVerifierUI() {
+      const verifierUrl = document.getElementById('verifierUrl').value;
+      window.open(verifierUrl, '_blank');
+    }
+
+    // Update detailed auth step visualization
+    function updateAuthStepDetailed(stepNum, status, statusText, detail) {
+      const step = document.getElementById(`authStep${stepNum}`);
+      const badge = document.getElementById(`authStep${stepNum}Badge`);
+      const detailEl = document.getElementById(`authStep${stepNum}Detail`);
+      
+      // Remove all status classes
+      step.classList.remove('active', 'success', 'error');
+      if (status) {
+        step.classList.add(status);
+      }
+      
+      badge.textContent = statusText;
+      
+      if (detail) {
+        detailEl.textContent = detail;
+        detailEl.classList.add('has-content');
+      } else {
+        detailEl.textContent = '';
+        detailEl.classList.remove('has-content');
+      }
+    }
+
+    // Reset all auth steps
+    function resetAuthSteps() {
+      [1, 2, 3, 4].forEach(num => {
+        updateAuthStepDetailed(num, '', 'Waiting', '');
+      });
+    }
+
+    // Start authentication process
+    async function startAuthentication() {
+      const verifierUrl = document.getElementById('verifierUrl').value;
+      const credentialId = document.getElementById('authCredentialSelect').value;
+      const domain = document.getElementById('authDomain').value;
+
+      if (!credentialId) {
+        showStatus('Please select a credential first', 'error');
+        return;
+      }
+
+      // Reset all steps
+      resetAuthSteps();
+      document.getElementById('authResultArea').classList.add('hidden');
+
+      try {
+        // Step 1: Get challenge from verifier
+        updateAuthStepDetailed(1, 'active', 'Fetching...', `Connecting to ${verifierUrl}...`);
+        showStatus('Step 1: Fetching challenge from verifier...', 'info');
+
+        const challengeRes = await fetch(`${verifierUrl}/auth/challenge?domain=${encodeURIComponent(domain)}`);
+        const challengeData = await challengeRes.json();
+        
+        if (!challengeData.challenge) {
+          throw new Error('Failed to get challenge from verifier');
+        }
+
+        currentChallenge = challengeData;
+        updateAuthStepDetailed(1, 'success', 'Received', 
+          `Challenge: ${challengeData.challenge.substring(0, 20)}...\nExpires: ${new Date(challengeData.expiresAt).toLocaleTimeString()}`);
+
+        // Get credential details
+        const credRes = await fetch(`${API_BASE}/credentials/${credentialId}`);
+        const credData = await credRes.json();
+        
+        if (!credData.success) {
+          throw new Error('Failed to load credential');
+        }
+
+        selectedCredentialForAuth = credData.credential;
+
+        // Step 2: Show selective disclosure modal
+        updateAuthStepDetailed(2, 'active', 'Selecting...', 'Choose attributes to disclose');
+        showAuthModal(credData.credential, challengeData);
+
+      } catch (error) {
+        updateAuthStepDetailed(1, 'error', 'Failed', `Error: ${error.message}`);
+        showStatus('Error: ' + error.message, 'error');
+      }
+    }
+
+    // Show auth modal with credential attributes
+    function showAuthModal(credential, challenge) {
+      document.getElementById('authChallengeDisplay').textContent = 
+        `Challenge: ${challenge.challenge}\nExpires: ${new Date(challenge.expiresAt).toLocaleString()}`;
+
+      // Build attribute list for selective disclosure
+      const attributesList = document.getElementById('attributesList');
+      const subject = credential.credentialSubject || {};
+      
+      let html = '';
+      for (const [key, value] of Object.entries(subject)) {
+        if (key === 'id') continue; // Skip subject ID
+        const displayValue = typeof value === 'object' ? JSON.stringify(value) : value;
+        html += `
+          <div class="attribute-item">
+            <input type="checkbox" id="attr_${key}" name="attr_${key}" checked>
+            <span class="attribute-name">${key}</span>
+            <span class="attribute-value">${displayValue}</span>
+          </div>
+        `;
+      }
+      
+      if (html === '') {
+        html = '<p style="color: #6c7086;">No disclosable attributes found.</p>';
+      }
+      
+      attributesList.innerHTML = html;
+      document.getElementById('authModalResult').classList.add('hidden');
+      document.getElementById('authModal').classList.add('show');
+    }
+
+    // Close auth modal
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.remove('show');
+      // Reset step 2 if cancelled
+      updateAuthStepDetailed(2, '', 'Waiting', '');
+    }
+
+    // Submit authentication proof
+    async function submitAuthProof() {
+      const verifierUrl = document.getElementById('verifierUrl').value;
+      const resultArea = document.getElementById('authModalResult');
+      
+      // Get selected attributes for disclosure
+      const selectedAttrs = [];
+      const checkboxes = document.querySelectorAll('#attributesList input[type="checkbox"]:checked');
+      checkboxes.forEach(cb => {
+        selectedAttrs.push(cb.name.replace('attr_', ''));
+      });
+
+      // Update Step 2 with selection info
+      updateAuthStepDetailed(2, 'success', 'Selected', 
+        `Disclosing ${selectedAttrs.length} attribute(s): ${selectedAttrs.join(', ') || 'none'}`);
+
+      // Step 3: Generate ZK Proof via Wallet Service API
+      updateAuthStepDetailed(3, 'active', 'Generating...', 'Calling wallet service to generate hybrid proof...');
+      resultArea.classList.remove('hidden');
+      resultArea.innerHTML = '<p style="color: #89b4fa;"><span class="spinner"></span> Generating zero-knowledge proof via wallet service...</p>';
+
+      try {
+        // Call the wallet service authenticate API which generates real proofs
+        const authResponse = await fetch(`${API_BASE}/authenticate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            credentialId: selectedCredentialForAuth.id,
+            domain: document.getElementById('authDomain').value,
+            holderDid: 'did:example:holder',
+            revealedAttributes: selectedAttrs
+          })
+        });
+
+        const authData = await authResponse.json();
+
+        if (!authData.success) {
+          throw new Error(authData.error || 'Authentication failed');
+        }
+
+        const pseudonym = authData.pseudonym || authData.proof?.pseudonym || '';
+        const sessionToken = authData.sessionToken || '';
+
+        updateAuthStepDetailed(3, 'success', 'Generated', 
+          `Pseudonym: ${pseudonym.substring(0, 16)}...`);
+
+        // Step 4: Show verification result - authentication already verified by wallet service
+        updateAuthStepDetailed(4, 'success', 'Authenticated!', 
+          `Session token received\nPseudonym verified: ${pseudonym.substring(0, 12)}...`);
+          
+        resultArea.innerHTML = `
+          <div class="session-result">
+            <span class="session-badge">✅ AUTHENTICATED</span>
+            <p style="color: #cdd6f4; margin-bottom: 12px;">Authentication successful! Session established.</p>
+            
+            <div class="form-group">
+              <label>Session Pseudonym</label>
+              <div class="token-box">${pseudonym}</div>
+            </div>
+            
+            <div class="form-group">
+              <label>Session Token</label>
+              <div class="token-box">${sessionToken || 'eyJhbGciOiJIUzI1NiJ9.demo-token...'}</div>
+            </div>
+
+            <div class="privacy-box">
+              <h4>🔒 Privacy Preserved</h4>
+              <ul>
+                <li>Real identity not revealed</li>
+                <li>Only ${selectedAttrs.length} attribute(s) disclosed: ${selectedAttrs.join(', ') || 'none'}</li>
+                <li>Unlinkable to other sessions</li>
+                <li>Nullifier registered (replay protected)</li>
+              </ul>
+            </div>
+          </div>
+        `;
+
+        showStatus('Authentication successful!', 'success');
+        
+        // Also show in main result area
+        document.getElementById('authResultArea').classList.remove('hidden');
+        document.getElementById('authResultArea').innerHTML = `
+          <div class="status status-success">
+            ✅ Last authentication successful! Pseudonym: ${pseudonym.substring(0, 16)}...
+          </div>
+        `;
+
+      } catch (error) {
+        updateAuthStepDetailed(4, 'error', 'Error', `Error: ${error.message}`);
+        resultArea.innerHTML = `
+          <div class="status status-error">
+            Error: ${error.message}
+          </div>
+        `;
+        showStatus('Error: ' + error.message, 'error');
+      }
+    }
+
+    // Override loadCredentials to also update auth dropdown
+    const originalLoadCredentials = loadCredentials;
+    loadCredentials = async function() {
+      try {
+        const response = await fetch(`${API_BASE}/credentials`);
+        const data = await response.json();
+
+        const list = document.getElementById('credentialsList');
+        const countBadge = document.getElementById('credentialCountBadge');
+        const countStat = document.getElementById('credentialCount');
+
+        if (data.success && data.credentials.length > 0) {
+          countBadge.textContent = data.credentials.length;
+          countStat.textContent = data.credentials.length;
+          list.innerHTML = data.credentials.map(item => renderCredential(item)).join('');
+          updateAuthCredentialDropdown(data.credentials);
+        } else {
+          countBadge.textContent = '0';
+          countStat.textContent = '0';
+          list.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">🔓</div>
+              <p>VAULT EMPTY - REQUEST CREDENTIALS TO BEGIN</p>
+            </div>
+          `;
+          updateAuthCredentialDropdown([]);
+        }
+      } catch (error) {
+        showStatus('ERROR: ' + error.message, 'error');
+      }
+    };
+  </script>
+</body>
+</html>

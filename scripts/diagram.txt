@@ -1,0 +1,140 @@
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        HALP AUTHENTICATION FLOW                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+   HOLDER (Wallet)                    VERIFIER                      REGISTRY
+        │                                │                              │
+        │  ┌─────────────────────────┐   │                              │
+        │  │ Stored Credential:      │   │                              │
+        │  │ • W3C VC (claims)       │   │                              │
+        │  │ • BBS+ signature σ      │   │                              │
+        │  │ • Master secret ms      │   │                              │
+        │  │ • Commitment C          │   │                              │
+        │  └─────────────────────────┘   │                              │
+        │                                │                              │
+   ═══════════════════════════════════════════════════════════════════════════════
+   PHASE 1: CHALLENGE REQUEST
+   ═══════════════════════════════════════════════════════════════════════════════
+        │                                │                              │
+        │  POST /auth/challenge          │                              │
+        │  { domain, credentialType }    │                              │
+        │ ──────────────────────────────>│                              │
+        │                                │                              │
+        │                                │  GET /merkle/root            │
+        │                                │ ─────────────────────────────>
+        │                                │                              │
+        │                                │<───────────────────────────── 
+        │                                │  { root, treeSize }          │
+        │                                │                              │
+        │<────────────────────────────── │                              │
+        │  {                             │                              │
+        │    challengeId,                │                              │
+        │    challenge (nonce),          │                              │
+        │    domain,                     │                              │
+        │    circuitId: "halp-auth-v1",  │                              │
+        │    registryRoot,               │                              │
+        │    expiresAt                   │                              │
+        │  }                             │                              │
+        │                                │                              │
+   ═══════════════════════════════════════════════════════════════════════════════
+   PHASE 2: PROOF GENERATION (in wallet)
+   ═══════════════════════════════════════════════════════════════════════════════
+        │                                │                              │
+        │  ┌─────────────────────────────────────────────────────────┐  │
+        │  │ STEP 1: Derive Session Pseudonym                        │  │
+        │  │   P = Poseidon(ms, sessionNonce, domain)                │  │
+        │  │   • Unlinkable across sessions                          │  │
+        │  │   • Unique per domain                                   │  │
+        │  └─────────────────────────────────────────────────────────┘  │
+        │                                │                              │
+        │  ┌─────────────────────────────────────────────────────────┐  │
+        │  │ STEP 2: Compute Nullifier                               │  │
+        │  │   Nf = Poseidon(credentialId, sessionNonce, domain)     │  │
+        │  │   • Prevents double-use in same session                 │  │
+        │  │   • Unlinkable to credential                            │  │
+        │  └─────────────────────────────────────────────────────────┘  │
+        │                                │                              │
+        │  ┌─────────────────────────────────────────────────────────┐  │
+        │  │ STEP 3: Get Non-Membership Proof                        │  │
+        │  │   Request Merkle proof that Nf is NOT in registry       │  │
+        │  └─────────────────────────────────────────────────────────┘  │
+        │                                │                              │
+        │  GET /merkle/non-membership?nullifier=Nf                      │
+        │ ─────────────────────────────────────────────────────────────>│
+        │                                │                              │
+        │<───────────────────────────────────────────────────────────── │
+        │  { siblings[], pathIndices[], root }                          │
+        │                                │                              │
+        │  ┌─────────────────────────────────────────────────────────┐  │
+        │  │ STEP 4: Generate zk-SNARK Proof                         │  │
+        │  │                                                         │  │
+        │  │   PRIVATE INPUTS (witness):                             │  │
+        │  │   • masterSecret (ms)                                   │  │
+        │  │   • blindingFactor (r)                                  │  │
+        │  │   • credentialId                                        │  │
+        │  │   • bbsSignature (σ)                                    │  │
+        │  │   • merkleSiblings[]                                    │  │
+        │  │   • merklePathIndices[]                                 │  │
+        │  │                                                         │  │
+        │  │   PUBLIC INPUTS:                                        │  │
+        │  │   • pseudonym (P)                                       │  │
+        │  │   • nullifier (Nf)                                      │  │
+        │  │   • registryRoot                                        │  │
+        │  │   • challenge (nonce)                                   │  │
+        │  │   • domain                                              │  │
+        │  │   • commitment (C)                                      │  │
+        │  │                                                         │  │
+        │  │   CIRCUIT PROVES:                                       │  │
+        │  │   1. P = Poseidon(ms, nonce, domain)  ← pseudonym ok    │  │
+        │  │   2. Nf = Poseidon(credId, nonce, domain) ← nullifier   │  │
+        │  │   3. C = Pedersen(ms, r)              ← commitment ok   │  │
+        │  │   4. BBS+_Verify(σ, [C, ...claims])   ← valid credential│  │
+        │  │   5. MerkleVerify(Nf ∉ tree, root)    ← not revoked     │  │
+        │  └─────────────────────────────────────────────────────────┘  │
+        │                                │                              │
+   ═══════════════════════════════════════════════════════════════════════════════
+   PHASE 3: PROOF SUBMISSION & VERIFICATION
+   ═══════════════════════════════════════════════════════════════════════════════
+        │                                │                              │
+        │  POST /auth/verify             │                              │
+        │  {                             │                              │
+        │    challengeId,                │                              │
+        │    proof: { pi_a, pi_b, pi_c },│                              │
+        │    pseudonym: P,               │                              │
+        │    nullifier: Nf,              │                              │
+        │    registryRoot,               │                              │
+        │    domain                      │                              │
+        │  }                             │                              │
+        │ ──────────────────────────────>│                              │
+        │                                │                              │
+        │                                │  ┌────────────────────────┐  │
+        │                                │  │ VERIFICATION STEPS:    │  │
+        │                                │  │ 1. Challenge valid?    │  │
+        │                                │  │ 2. Challenge not       │  │
+        │                                │  │    expired?            │  │
+        │                                │  │ 3. SNARK proof valid?  │  │
+        │                                │  │ 4. Registry root       │  │
+        │                                │  │    matches?            │  │
+        │                                │  └────────────────────────┘  │
+        │                                │                              │
+        │                                │  POST /nullifiers/check      │
+        │                                │ ─────────────────────────────>
+        │                                │                              │
+        │                                │<───────────────────────────── 
+        │                                │  { exists: false }           │
+        │                                │                              │
+        │                                │  POST /nullifiers/add        │
+        │                                │  { nullifier: Nf }           │
+        │                                │ ─────────────────────────────>
+        │                                │                              │
+        │                                │<───────────────────────────── 
+        │                                │  { added: true }             │
+        │                                │                              │
+        │<────────────────────────────── │                              │
+        │  {                             │                              │
+        │    verified: true,             │                              │
+        │    pseudonym: P,               │                              │
+        │    sessionToken: JWT           │                              │
+        │  }                             │                              │
+        │                                │                              │
+   ═══════════════════════════════════════════════════════════════════════════════

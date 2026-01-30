@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HALP Registry Service - Merkle Tree Visualizer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    h1 {
+      font-size: 2rem;
+      background: linear-gradient(90deg, #00d4ff, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      color: #888;
+      font-size: 0.9rem;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(0, 212, 255, 0.3);
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #00d4ff;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 0.85rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .panel {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .panel-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .panel-title .icon {
+      font-size: 1.2rem;
+    }
+    
+    .merkle-root-display {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      word-break: break-all;
+      font-size: 0.85rem;
+      color: #7c3aed;
+      border-left: 3px solid #7c3aed;
+      transition: all 0.3s ease;
+    }
+    
+    .merkle-root-display.updated {
+      border-left-color: #00d4ff;
+      color: #00d4ff;
+      background: rgba(0, 212, 255, 0.1);
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+    
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+    }
+    
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #00d4ff;
+    }
+    
+    input[type="text"]::placeholder {
+      color: #555;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    
+    button {
+      flex: 1;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #00d4ff, #0099cc);
+      color: #000;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.4);
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .history {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .history-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    .history-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    
+    .history-icon.success {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+    }
+    
+    .history-icon.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+    
+    .history-icon.info {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+    }
+    
+    .history-content {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .history-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+    
+    .history-details {
+      font-size: 0.8rem;
+      color: #888;
+      font-family: 'Consolas', 'Monaco', monospace;
+      word-break: break-all;
+    }
+    
+    .history-time {
+      font-size: 0.75rem;
+      color: #666;
+      white-space: nowrap;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 32px;
+      color: #666;
+    }
+    
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .status-indicator.online {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+    }
+    
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .root-change-indicator {
+      font-size: 0.75rem;
+      color: #10b981;
+      margin-top: 8px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .root-change-indicator.visible {
+      opacity: 1;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌳 HALP Registry Service</h1>
+      <p class="subtitle">Nullifier Registry & Indexed Merkle Tree Visualizer</p>
+      <div style="margin-top: 12px;">
+        <span class="status-indicator online">
+          <span class="status-dot"></span>
+          Service Online
+        </span>
+      </div>
+    </header>
+    
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="nullifierCount">0</div>
+        <div class="stat-label">Nullifiers</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="treeHeight">20</div>
+        <div class="stat-label">Tree Height</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="maxCapacity">~1M</div>
+        <div class="stat-label">Max Capacity</div>
+      </div>
+    </div>
+    
+    <!-- Merkle Root Panel -->
+    <div class="panel">
+      <div class="panel-title">
+        <span class="icon">🔐</span>
+        Current Merkle Root
+      </div>
+      <div class="merkle-root-display" id="merkleRoot">Loading...</div>
+      <div class="root-change-indicator" id="rootChangeIndicator">
+        ✓ Root updated at <span id="lastUpdateTime">--</span>
+      </div>
+    </div>
+    
+    <!-- Register Nullifier Panel -->
+    <div class="panel">
+      <div class="panel-title">
+        <span class="icon">➕</span>
+        Register Nullifier
+      </div>
+      <div class="form-group">
+        <label>Nullifier Hash (hex)</label>
+        <input type="text" id="nullifierInput" placeholder="0x1234... or leave empty to generate random">
+      </div>
+      <div class="form-group">
+        <label>Domain</label>
+        <input type="text" id="domainInput" placeholder="example.com" value="test.halp.local">
+      </div>
+      <div class="form-group">
+        <label>Pseudonym (hex)</label>
+        <input type="text" id="pseudonymInput" placeholder="0xabc... or leave empty to generate random">
+      </div>
+      <div class="btn-group">
+        <button class="btn-primary" onclick="registerNullifier()">Register Nullifier</button>
+        <button class="btn-secondary" onclick="checkNullifier()">Check Status</button>
+      </div>
+    </div>
+    
+    <!-- History Panel -->
+    <div class="panel">
+      <div class="panel-title">
+        <span class="icon">📜</span>
+        Activity Log
+      </div>
+      <div class="history" id="historyLog">
+        <div class="empty-state">No activity yet. Register a nullifier to see changes.</div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const API_BASE = '';
+    let previousRoot = '';
+    let historyItems = [];
+    
+    // Generate random hex string
+    function randomHex(bytes = 32) {
+      const arr = new Uint8Array(bytes);
+      crypto.getRandomValues(arr);
+      return '0x' + Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    
+    // Format timestamp
+    function formatTime(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    
+    // Add history item
+    function addHistoryItem(type, title, details) {
+      historyItems.unshift({
+        type,
+        title,
+        details,
+        time: Date.now()
+      });
+      
+      // Keep only last 50 items
+      if (historyItems.length > 50) {
+        historyItems = historyItems.slice(0, 50);
+      }
+      
+      renderHistory();
+    }
+    
+    // Render history
+    function renderHistory() {
+      const container = document.getElementById('historyLog');
+      
+      if (historyItems.length === 0) {
+        container.innerHTML = '<div class="empty-state">No activity yet. Register a nullifier to see changes.</div>';
+        return;
+      }
+      
+      container.innerHTML = historyItems.map(item => `
+        <div class="history-item">
+          <div class="history-icon ${item.type}">
+            ${item.type === 'success' ? '✓' : item.type === 'error' ? '✗' : 'ℹ'}
+          </div>
+          <div class="history-content">
+            <div class="history-title">${item.title}</div>
+            <div class="history-details">${item.details}</div>
+          </div>
+          <div class="history-time">${formatTime(item.time)}</div>
+        </div>
+      `).join('');
+    }
+    
+    // Fetch and display stats
+    async function fetchStats() {
+      try {
+        const [merkleRes, statsRes] = await Promise.all([
+          fetch(`${API_BASE}/merkle/root`),
+          fetch(`${API_BASE}/nullifiers/stats`)
+        ]);
+        
+        const merkleData = await merkleRes.json();
+        const statsData = await statsRes.json();
+        
+        // Update stats
+        document.getElementById('nullifierCount').textContent = statsData.totalNullifiers || 0;
+        document.getElementById('treeHeight').textContent = statsData.treeHeight || 20;
+        
+        // Update merkle root
+        const rootDisplay = document.getElementById('merkleRoot');
+        const newRoot = merkleData.root || 'Unknown';
+        
+        // Check if root changed
+        if (previousRoot && previousRoot !== newRoot) {
+          rootDisplay.classList.add('updated');
+          document.getElementById('rootChangeIndicator').classList.add('visible');
+          document.getElementById('lastUpdateTime').textContent = formatTime(Date.now());
+          
+          setTimeout(() => {
+            rootDisplay.classList.remove('updated');
+          }, 2000);
+        }
+        
+        previousRoot = newRoot;
+        rootDisplay.textContent = newRoot;
+        
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    }
+    
+    // Register nullifier
+    async function registerNullifier() {
+      const nullifier = document.getElementById('nullifierInput').value || randomHex(32);
+      const domain = document.getElementById('domainInput').value || 'test.halp.local';
+      const pseudonym = document.getElementById('pseudonymInput').value || randomHex(32);
+      
+      try {
+        const response = await fetch(`${API_BASE}/nullifiers/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nullifier, domain, pseudonym })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          addHistoryItem(
+            'success',
+            'Nullifier Registered',
+            `Index: ${data.treeIndex} | New Root: ${data.newRoot.substring(0, 32)}...`
+          );
+          
+          // Clear inputs
+          document.getElementById('nullifierInput').value = '';
+          document.getElementById('pseudonymInput').value = '';
+          
+          // Refresh stats
+          await fetchStats();
+        } else {
+          addHistoryItem(
+            'error',
+            'Registration Failed',
+            data.error || 'Unknown error'
+          );
+        }
+      } catch (error) {
+        addHistoryItem(
+          'error',
+          'Request Failed',
+          error.message
+        );
+      }
+    }
+    
+    // Check nullifier status
+    async function checkNullifier() {
+      const nullifier = document.getElementById('nullifierInput').value;
+      
+      if (!nullifier) {
+        addHistoryItem('info', 'Check Status', 'Please enter a nullifier hash to check');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE}/nullifiers/check`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nullifier })
+        });
+        
+        const data = await response.json();
+        
+        addHistoryItem(
+          data.used ? 'error' : 'success',
+          `Nullifier ${data.used ? 'USED' : 'NOT USED'}`,
+          `Nullifier: ${data.nullifier}`
+        );
+      } catch (error) {
+        addHistoryItem(
+          'error',
+          'Check Failed',
+          error.message
+        );
+      }
+    }
+    
+    // Initialize
+    fetchStats();
+    
+    // Auto-refresh every 3 seconds
+    setInterval(fetchStats, 3000);
+  </script>
+</body>
+</html>

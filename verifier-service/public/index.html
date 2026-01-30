@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HALP Verifier - Zero-Knowledge Verification Portal</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(0.98); }
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #1e1e2e;
+      background-image: radial-gradient(ellipse at top, #2a2a3e 0%, #1e1e2e 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #cdd6f4;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 50% 50%, rgba(203, 166, 247, 0.03) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    header {
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.15) 0%, rgba(137, 180, 250, 0.15) 50%, rgba(166, 227, 161, 0.15) 100%);
+      border: 1px solid rgba(203, 166, 247, 0.3);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(203, 166, 247, 0.2);
+      backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(203, 166, 247, 0.08), transparent);
+      animation: shimmer 6s infinite;
+    }
+
+    h1 {
+      background: linear-gradient(135deg, #cba6f7 0%, #89b4fa 50%, #a6e3a1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+      font-size: 1.9rem;
+      filter: drop-shadow(0 2px 12px rgba(203, 166, 247, 0.3));
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h1::before {
+      content: '🛡️';
+      font-size: 1.8rem;
+      filter: drop-shadow(0 2px 4px rgba(203, 166, 247, 0.4));
+    }
+
+    .subtitle {
+      color: #a6adc8;
+      font-size: 0.95rem;
+      letter-spacing: 0.01em;
+      opacity: 0.9;
+    }
+
+    .nav-links {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      color: #89b4fa;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: rgba(137, 180, 250, 0.1);
+      border: 1px solid rgba(137, 180, 250, 0.2);
+      font-size: 0.85rem;
+      transition: all 0.3s ease;
+    }
+
+    .nav-links a:hover {
+      background: rgba(137, 180, 250, 0.2);
+      border-color: rgba(137, 180, 250, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.12) 0%, rgba(137, 180, 250, 0.12) 100%);
+      border: 1px solid rgba(203, 166, 247, 0.35);
+      border-radius: 10px;
+      padding: 22px;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(203, 166, 247, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(203, 166, 247, 0.3);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      background: linear-gradient(135deg, #cba6f7 0%, #89b4fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 600;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: #a6adc8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 6px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 14px 24px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      color: #a6adc8;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .tab-btn:hover {
+      background: rgba(203, 166, 247, 0.1);
+      border-color: rgba(203, 166, 247, 0.3);
+      color: #cba6f7;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.2), rgba(137, 180, 250, 0.2));
+      border-color: #cba6f7;
+      color: #fff;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .card {
+      background: linear-gradient(135deg, rgba(203, 166, 247, 0.08) 0%, rgba(137, 180, 250, 0.08) 50%, rgba(166, 227, 161, 0.08) 100%);
+      border: 1px solid rgba(203, 166, 247, 0.25);
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(203, 166, 247, 0.12);
+      backdrop-filter: blur(12px);
+    }
+
+    .card h2 {
+      background: linear-gradient(135deg, #cba6f7 0%, #89b4fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 20px;
+      font-size: 1.15rem;
+      border-bottom: 1px solid rgba(203, 166, 247, 0.2);
+      padding-bottom: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #b4befe;
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid rgba(203, 166, 247, 0.2);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: rgba(30, 30, 46, 0.5);
+      color: #cdd6f4;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      transition: all 0.2s ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #cba6f7;
+      box-shadow: 0 0 0 3px rgba(203, 166, 247, 0.15);
+      background: rgba(30, 30, 46, 0.7);
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+      font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+
+    button {
+      background: linear-gradient(135deg, #cba6f7 0%, #89b4fa 50%, #a6e3a1 100%);
+      color: #1e1e2e;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.25s ease;
+      letter-spacing: 0.01em;
+      box-shadow: 0 4px 16px rgba(203, 166, 247, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    button:hover {
+      box-shadow: 0 8px 24px rgba(203, 166, 247, 0.45);
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #cdd6f4;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      margin-left: 10px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Verification Flow Visualization */
+    .verification-flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin: 30px 0;
+    }
+
+    @media (max-width: 900px) {
+      .verification-flow {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .verification-flow {
+        grid-template-columns: 1fr;
+      }
+      .flow-step::after {
+        content: '|';
+        right: 50%;
+        top: auto;
+        bottom: -20px;
+        transform: translateX(50%);
+      }
+    }
+
+    .flow-step {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .flow-step.active {
+      border-color: #f9e2af;
+      background: rgba(249, 226, 175, 0.1);
+      animation: pulse 1s infinite;
+    }
+
+    .flow-step.success {
+      border-color: #a6e3a1;
+      background: rgba(166, 227, 161, 0.1);
+    }
+
+    .flow-step.error {
+      border-color: #f38ba8;
+      background: rgba(243, 139, 168, 0.1);
+    }
+
+    .flow-step::after {
+      content: '->';
+      position: absolute;
+      right: -18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #45475a;
+      font-size: 1rem;
+      font-weight: bold;
+    }
+
+    .flow-step:last-child::after {
+      display: none;
+    }
+
+    .flow-icon {
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      font-size: 1.4rem;
+    }
+
+    .flow-step.success .flow-icon {
+      background: rgba(166, 227, 161, 0.2);
+    }
+
+    .flow-step.error .flow-icon {
+      background: rgba(243, 139, 168, 0.2);
+    }
+
+    .flow-title {
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
+    }
+
+    .flow-status {
+      font-size: 0.75rem;
+      color: #6c7086;
+    }
+
+    .flow-step.success .flow-status {
+      color: #a6e3a1;
+    }
+
+    .flow-step.error .flow-status {
+      color: #f38ba8;
+    }
+
+    /* Result Box */
+    .result-box {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      padding: 18px;
+      margin-top: 20px;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.85rem;
+      max-height: 350px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+
+    .result-box.success {
+      border-left: 4px solid #a6e3a1;
+    }
+
+    .result-box.error {
+      border-left: 4px solid #f38ba8;
+    }
+
+    .result-box.info {
+      border-left: 4px solid #89b4fa;
+    }
+
+    .result-box::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .result-box::-webkit-scrollbar-track {
+      background: rgba(30, 30, 46, 0.4);
+      border-radius: 4px;
+    }
+
+    .result-box::-webkit-scrollbar-thumb {
+      background: rgba(203, 166, 247, 0.4);
+      border-radius: 4px;
+    }
+
+    /* Session Card */
+    .session-card {
+      background: linear-gradient(135deg, rgba(166, 227, 161, 0.1), rgba(137, 180, 250, 0.1));
+      border: 1px solid rgba(166, 227, 161, 0.3);
+      border-radius: 16px;
+      padding: 28px;
+      margin-top: 24px;
+    }
+
+    .session-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .session-badge {
+      background: #a6e3a1;
+      color: #1e1e2e;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .token-display {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      word-break: break-all;
+      color: #89b4fa;
+      margin-top: 8px;
+    }
+
+    .privacy-notice {
+      background: rgba(203, 166, 247, 0.1);
+      border: 1px solid rgba(203, 166, 247, 0.3);
+      border-radius: 10px;
+      padding: 18px;
+      margin-top: 20px;
+    }
+
+    .privacy-notice h4 {
+      color: #cba6f7;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .privacy-notice ul {
+      list-style: none;
+      color: #a6adc8;
+    }
+
+    .privacy-notice li {
+      padding: 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .privacy-notice li::before {
+      content: '✓';
+      color: #a6e3a1;
+      font-weight: bold;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Status Messages */
+    .status {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+      border: 1px solid;
+    }
+
+    .status-success {
+      background: rgba(166, 227, 161, 0.12);
+      color: #a6e3a1;
+      border-color: rgba(166, 227, 161, 0.3);
+    }
+
+    .status-error {
+      background: rgba(243, 139, 168, 0.12);
+      color: #f38ba8;
+      border-color: rgba(243, 139, 168, 0.3);
+    }
+
+    .status-info {
+      background: rgba(137, 180, 250, 0.12);
+      color: #89b4fa;
+      border-color: rgba(137, 180, 250, 0.3);
+    }
+
+    /* Info grid */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .info-box {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 18px;
+      border-radius: 10px;
+    }
+
+    .info-box h4 {
+      color: #89b4fa;
+      margin-bottom: 14px;
+      font-size: 0.9rem;
+    }
+
+    .info-box p {
+      color: #a6adc8;
+      font-size: 0.85rem;
+      padding: 4px 0;
+    }
+
+    .info-box code {
+      color: #cba6f7;
+      font-family: 'Fira Code', monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>HALP VERIFICATION PORTAL</h1>
+      <p class="subtitle">◢ ZERO-KNOWLEDGE PROOF VERIFICATION FOR PRIVACY-PRESERVING AUTHENTICATION ◣</p>
+      <div class="nav-links">
+        <a href="http://localhost:3001" target="_blank">Issuer Portal</a>
+        <a href="http://localhost:3003" target="_blank">Registry Service</a>
+        <a href="http://localhost:3004" target="_blank">Wallet UI</a>
+      </div>
+    </header>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="statVerifications">0</div>
+        <div class="stat-label">Verifications</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statSuccess">100%</div>
+        <div class="stat-label">Success Rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statMode">Demo</div>
+        <div class="stat-label">Circuit Mode</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statActive">0</div>
+        <div class="stat-label">Active Sessions</div>
+      </div>
+    </div>
+
+    <!-- Status Message -->
+    <div id="statusMessage" class="status hidden"></div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('hybrid')">🔐 Hybrid Authentication</button>
+      <button class="tab-btn" onclick="showTab('credential')">📄 Verify Credential</button>
+      <button class="tab-btn" onclick="showTab('status')">⚙️ System Status</button>
+    </div>
+
+    <!-- Hybrid Authentication Tab -->
+    <div id="hybrid-tab" class="tab-content active">
+      <div class="card">
+        <h2>🔐 Hybrid SNARK + BBS+ Authentication</h2>
+        <p style="color: #a6adc8; margin-bottom: 20px;">Verify zero-knowledge proofs combining SNARK for identity binding and BBS+ for selective disclosure.</p>
+
+        <!-- Verification Flow Visualization -->
+        <div class="verification-flow">
+          <div class="flow-step" id="step1">
+            <div class="flow-icon">📨</div>
+            <div class="flow-title">Challenge</div>
+            <div class="flow-status">Waiting</div>
+          </div>
+          <div class="flow-step" id="step2">
+            <div class="flow-icon">🔒</div>
+            <div class="flow-title">SNARK</div>
+            <div class="flow-status">Waiting</div>
+          </div>
+          <div class="flow-step" id="step3">
+            <div class="flow-icon">✍️</div>
+            <div class="flow-title">BBS+</div>
+            <div class="flow-status">Waiting</div>
+          </div>
+          <div class="flow-step" id="step4">
+            <div class="flow-icon">🔗</div>
+            <div class="flow-title">Binding</div>
+            <div class="flow-status">Waiting</div>
+          </div>
+          <div class="flow-step" id="step5">
+            <div class="flow-icon">🎫</div>
+            <div class="flow-title">Token</div>
+            <div class="flow-status">Waiting</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>▸ DOMAIN (Optional)</label>
+          <input type="text" id="challengeDomain" placeholder="example.com" value="halp.demo">
+        </div>
+
+        <button onclick="generateChallenge()">📨 Generate Challenge</button>
+        
+        <div id="challengeDisplay" class="result-box info hidden"></div>
+
+        <div class="form-group" style="margin-top: 24px;">
+          <label>▸ AUTHENTICATION PROOF PACKAGE (JSON)</label>
+          <textarea id="authProofJson" placeholder='{
+  "challengeId": "...",
+  "challenge": "...",
+  "hybridProof": {
+    "snarkProof": { ... },
+    "publicInputs": { ... },
+    "bbsProof": { ... }
+  }
+}'></textarea>
+        </div>
+
+        <button onclick="verifyHybridAuth()">🔐 Verify Authentication</button>
+        <button class="btn-secondary" onclick="loadSampleAuth()">📋 Load Sample</button>
+
+        <div id="authResult" class="result-box hidden"></div>
+
+        <!-- Session Card (shown on success) -->
+        <div id="sessionCard" class="session-card hidden">
+          <div class="session-header">
+            <span class="session-badge">✅ AUTHENTICATED</span>
+            <span style="color: #a6adc8;">Session established at <span id="sessionTime"></span></span>
+          </div>
+          
+          <div class="form-group">
+            <label>Session Pseudonym (Anonymous Identity)</label>
+            <div class="token-display" id="sessionPseudonym"></div>
+          </div>
+          
+          <div class="form-group">
+            <label>JWT Session Token</label>
+            <div class="token-display" id="sessionToken"></div>
+          </div>
+
+          <div class="privacy-notice">
+            <h4>🔒 Privacy Guarantees</h4>
+            <ul>
+              <li>Your real identity was NOT revealed</li>
+              <li>Only selected attributes were disclosed</li>
+              <li>Proof cannot be linked to other sessions</li>
+              <li>Nullifier prevents replay attacks</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credential Verification Tab -->
+    <div id="credential-tab" class="tab-content">
+      <div class="card">
+        <h2>📄 Verify W3C Verifiable Credential</h2>
+        <p style="color: #a6adc8; margin-bottom: 20px;">Validate BBS+ signatures and credential integrity for W3C Verifiable Credentials.</p>
+
+        <div class="form-group">
+          <label>▸ VERIFIABLE CREDENTIAL (JSON)</label>
+          <textarea id="credentialJson" placeholder='{
+  "@context": ["https://www.w3.org/ns/credentials/v2"],
+  "type": ["VerifiableCredential"],
+  "issuer": "did:example:issuer",
+  "credentialSubject": { ... },
+  "proof": { ... }
+}'></textarea>
+        </div>
+
+        <button onclick="verifyCredential()">✅ Verify Credential</button>
+        <button class="btn-secondary" onclick="loadSampleCredential()">📋 Load Sample</button>
+
+        <div id="verifyResult" class="result-box hidden"></div>
+      </div>
+    </div>
+
+    <!-- Status Tab -->
+    <div id="status-tab" class="tab-content">
+      <div class="card">
+        <h2>⚙️ System Status</h2>
+        <p style="color: #a6adc8; margin-bottom: 20px;">Verifier service configuration and health information.</p>
+
+        <div id="statusContent">
+          <p style="color: #6c7086;">Loading status...</p>
+        </div>
+
+        <button onclick="loadStatus()" style="margin-top: 16px;">🔄 Refresh Status</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State tracking
+    let verificationCount = 0;
+    let successCount = 0;
+    let activeChallenge = null;
+    let activeSessions = 0;
+
+    // Tab switching
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabName + '-tab').classList.add('active');
+      event.target.classList.add('active');
+      
+      if (tabName === 'status') {
+        loadStatus();
+      }
+    }
+
+    // Status message display
+    function showStatus(message, type) {
+      const statusEl = document.getElementById('statusMessage');
+      statusEl.className = `status status-${type}`;
+      statusEl.textContent = message;
+      statusEl.classList.remove('hidden');
+      setTimeout(() => statusEl.classList.add('hidden'), 5000);
+    }
+
+    // Update stats
+    function updateStats() {
+      document.getElementById('statVerifications').textContent = verificationCount;
+      document.getElementById('statActive').textContent = activeSessions;
+      if (verificationCount > 0) {
+        const rate = Math.round((successCount / verificationCount) * 100);
+        document.getElementById('statSuccess').textContent = rate + '%';
+      }
+    }
+
+    // Load verifier status
+    async function loadStatus() {
+      const container = document.getElementById('statusContent');
+      try {
+        const [healthRes, hybridRes] = await Promise.all([
+          fetch('/health'),
+          fetch('/proof/verify/hybrid/status')
+        ]);
+        
+        const health = await healthRes.json();
+        const hybrid = await hybridRes.json();
+        
+        document.getElementById('statMode').textContent = hybrid.circuitReady ? 'Prod' : 'Demo';
+        
+        container.innerHTML = `
+          <div class="info-grid">
+            <div class="info-box">
+              <h4>🔧 Service Health</h4>
+              <p><strong>Status:</strong> <span style="color: #a6e3a1;">${health.status}</span></p>
+              <p><strong>Service:</strong> ${health.service}</p>
+              <p><strong>Timestamp:</strong> ${new Date(health.timestamp).toLocaleString()}</p>
+            </div>
+            <div class="info-box">
+              <h4>🔐 Hybrid Verifier</h4>
+              <p><strong>Mode:</strong> <span style="color: ${hybrid.circuitReady ? '#a6e3a1' : '#f9e2af'};">${hybrid.mode}</span></p>
+              <p><strong>Circuit Ready:</strong> ${hybrid.circuitReady ? 'Yes' : 'No (Demo)'}</p>
+              <p><strong>Circuit ID:</strong> ${hybrid.circuitId || 'halp-auth'}</p>
+            </div>
+          </div>
+          <div class="info-box" style="margin-top: 16px;">
+            <h4>📋 Available Endpoints</h4>
+            <p><code>POST /proof/verify</code> - Verify W3C Credential</p>
+            <p><code>POST /proof/verify/hybrid</code> - Verify Hybrid Auth</p>
+            <p><code>GET /auth/challenge</code> - Get Auth Challenge</p>
+            <p><code>POST /auth/verify</code> - Legacy Auth Verify</p>
+          </div>
+        `;
+      } catch (error) {
+        container.innerHTML = `<p style="color: #f38ba8;">Error loading status: ${error.message}</p>`;
+      }
+    }
+
+    // Generate challenge
+    async function generateChallenge() {
+      const display = document.getElementById('challengeDisplay');
+      const domain = document.getElementById('challengeDomain').value || 'default';
+      
+      display.classList.remove('hidden');
+      display.className = 'result-box info';
+      display.innerHTML = '<span class="spinner"></span> Generating challenge...';
+      
+      try {
+        const response = await fetch(`/auth/challenge?domain=${encodeURIComponent(domain)}`);
+        const data = await response.json();
+        
+        activeChallenge = data;
+        updateFlowStep('step1', 'success', 'Generated');
+        
+        display.innerHTML = `<strong>Challenge Generated Successfully</strong>
+
+Challenge ID: ${data.challengeId}
+Challenge:    ${data.challenge}
+Domain:       ${data.domain || domain}
+Expires:      ${new Date(data.expiresAt).toLocaleString()}
+
+Copy this challenge to your proof package.`;
+        
+        showStatus('Challenge generated! Use it in your proof package.', 'success');
+      } catch (error) {
+        display.className = 'result-box error';
+        display.innerHTML = `Error: ${error.message}`;
+        updateFlowStep('step1', 'error', 'Failed');
+      }
+    }
+
+    // Verify hybrid authentication
+    async function verifyHybridAuth() {
+      const resultBox = document.getElementById('authResult');
+      const proofJson = document.getElementById('authProofJson').value;
+      
+      resultBox.classList.remove('hidden');
+      resultBox.className = 'result-box info';
+      resultBox.innerHTML = '<span class="spinner"></span> Verifying authentication proof...';
+      
+      // Reset flow steps
+      ['step1', 'step2', 'step3', 'step4', 'step5'].forEach(id => {
+        updateFlowStep(id, '', 'Verifying...');
+      });
+      
+      try {
+        const proof = JSON.parse(proofJson);
+        
+        updateFlowStep('step1', 'active', 'Processing');
+        await delay(300);
+        
+        const response = await fetch('/proof/verify/hybrid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: proofJson
+        });
+        
+        const result = await response.json();
+        verificationCount++;
+        
+        // Animate verification steps
+        updateFlowStep('step1', 'success', 'Valid');
+        await delay(350);
+        
+        const snarkValid = result.verificationDetails?.snarkValid;
+        updateFlowStep('step2', snarkValid ? 'success' : 'error', snarkValid ? 'Valid' : 'Failed');
+        await delay(350);
+        
+        const bbsValid = result.verificationDetails?.bbsValid;
+        updateFlowStep('step3', bbsValid ? 'success' : 'error', bbsValid ? 'Valid' : 'Failed');
+        await delay(350);
+        
+        const bindingValid = result.verificationDetails?.bindingValid;
+        updateFlowStep('step4', bindingValid ? 'success' : 'error', bindingValid ? 'Valid' : 'Failed');
+        await delay(350);
+        
+        updateFlowStep('step5', result.valid ? 'success' : 'error', result.valid ? 'Issued' : 'Denied');
+        
+        if (result.valid) {
+          successCount++;
+          activeSessions++;
+          resultBox.className = 'result-box success';
+          resultBox.innerHTML = `<strong>AUTHENTICATION SUCCESSFUL</strong>
+
+Verification Details:
+  - SNARK Proof:   ${snarkValid ? 'Valid' : 'Invalid'}
+  - BBS+ Proof:    ${bbsValid ? 'Valid' : 'Invalid'}
+  - Binding Check: ${bindingValid ? 'Valid' : 'Invalid'}
+  - Nullifier:     ${result.verificationDetails?.nullifierFresh ? 'Fresh (not replayed)' : 'Warning'}
+
+Session Info:
+  - Pseudonym:  ${result.pseudonym || proof.pseudonym}
+  - Domain:     ${result.domain || proof.domain}`;
+          
+          // Show session card
+          document.getElementById('sessionCard').classList.remove('hidden');
+          document.getElementById('sessionPseudonym').textContent = result.pseudonym || proof.pseudonym;
+          document.getElementById('sessionToken').textContent = result.sessionToken || 'eyJhbGciOiJIUzI1NiJ9.demo-session-token...';
+          document.getElementById('sessionTime').textContent = new Date().toLocaleTimeString();
+          
+          showStatus('Authentication verified successfully!', 'success');
+        } else {
+          resultBox.className = 'result-box error';
+          resultBox.innerHTML = `<strong>AUTHENTICATION FAILED</strong>
+
+Error: ${result.error || 'Verification failed'}
+
+Verification Details:
+  - SNARK Proof:   ${snarkValid ? 'Valid' : 'Invalid'}
+  - BBS+ Proof:    ${bbsValid ? 'Valid' : 'Invalid'}
+  - Binding Check: ${bindingValid ? 'Valid' : 'Invalid'}
+
+Please check your proof package and try again.`;
+          
+          document.getElementById('sessionCard').classList.add('hidden');
+          showStatus('Authentication verification failed', 'error');
+        }
+        
+        updateStats();
+      } catch (error) {
+        resultBox.className = 'result-box error';
+        resultBox.innerHTML = `Error: ${error.message}`;
+        ['step2', 'step3', 'step4', 'step5'].forEach(id => updateFlowStep(id, 'error', 'Error'));
+        showStatus('Error: ' + error.message, 'error');
+      }
+    }
+
+    // Verify credential
+    async function verifyCredential() {
+      const resultBox = document.getElementById('verifyResult');
+      const credJson = document.getElementById('credentialJson').value;
+      
+      resultBox.classList.remove('hidden');
+      resultBox.className = 'result-box info';
+      resultBox.innerHTML = '<span class="spinner"></span> Verifying credential...';
+      
+      try {
+        const credential = JSON.parse(credJson);
+        
+        const response = await fetch('/proof/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ verifiableCredential: credential })
+        });
+        
+        const result = await response.json();
+        verificationCount++;
+        
+        if (result.ok || result.valid) {
+          successCount++;
+          resultBox.className = 'result-box success';
+          resultBox.innerHTML = `<strong>CREDENTIAL VERIFIED</strong>
+
+Verification Result:
+  - Status:    VALID
+  - Issuer:    ${credential.issuer?.id || credential.issuer || 'Unknown'}
+  - Type:      ${credential.type?.join(', ') || 'Unknown'}
+  - Signature: BBS+ verified
+
+Subject Claims:
+${JSON.stringify(credential.credentialSubject, null, 2)}
+
+This credential is authentic and has not been tampered with.`;
+          
+          showStatus('Credential verified successfully!', 'success');
+        } else {
+          resultBox.className = 'result-box error';
+          resultBox.innerHTML = `<strong>VERIFICATION FAILED</strong>
+
+Error: ${result.error || 'Invalid credential'}
+
+The credential signature could not be verified.`;
+          
+          showStatus('Credential verification failed', 'error');
+        }
+        
+        updateStats();
+      } catch (error) {
+        resultBox.className = 'result-box error';
+        resultBox.innerHTML = `Error: ${error.message}`;
+        showStatus('Error: ' + error.message, 'error');
+      }
+    }
+
+    // Update flow step visualization
+    function updateFlowStep(stepId, status, text) {
+      const step = document.getElementById(stepId);
+      step.className = 'flow-step ' + status;
+      step.querySelector('.flow-status').textContent = text;
+    }
+
+    // Utility delay
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Load sample credential
+    function loadSampleCredential() {
+      document.getElementById('credentialJson').value = JSON.stringify({
+        "@context": [
+          "https://www.w3.org/ns/credentials/v2",
+          "https://www.w3.org/ns/credentials/examples/v2",
+          "https://w3id.org/security/bbs/v1"
+        ],
+        "id": "urn:uuid:sample-credential-123",
+        "type": ["VerifiableCredential", "UniversityDegree"],
+        "issuer": {
+          "id": "did:example:issuer123",
+          "name": "Test University"
+        },
+        "validFrom": "2025-01-01T00:00:00Z",
+        "credentialSubject": {
+          "id": "did:example:holder456",
+          "name": "John Doe",
+          "degree": {
+            "type": "BachelorDegree",
+            "name": "Bachelor of Computer Science"
+          }
+        },
+        "proof": {
+          "type": "BbsBlsSignature2020",
+          "created": "2025-01-01T00:00:00Z",
+          "proofPurpose": "assertionMethod",
+          "verificationMethod": "did:example:issuer123#bbs-key-1",
+          "proofValue": "sample-bbs-signature-base64"
+        }
+      }, null, 2);
+    }
+
+    // Load sample auth proof
+    function loadSampleAuth() {
+      const timestamp = Date.now();
+      const pseudonym = Array.from({length: 32}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const nullifier = Array.from({length: 32}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const commitment = Array.from({length: 16}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const challenge = activeChallenge?.challenge || Array.from({length: 32}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const challengeId = activeChallenge?.challengeId || 'demo-challenge-' + Date.now();
+      
+      document.getElementById('authProofJson').value = JSON.stringify({
+        challengeId: challengeId,
+        challenge: challenge,
+        domain: document.getElementById('challengeDomain').value || "halp.demo",
+        timestamp: timestamp,
+        pseudonym: pseudonym,
+        nullifier: nullifier,
+        hybridProof: {
+          snarkProof: {
+            pi_a: ["12345678901234567890", "98765432109876543210", "1"],
+            pi_b: [["11111111", "22222222"], ["33333333", "44444444"], ["1", "0"]],
+            pi_c: ["55555555555555555555", "66666666666666666666", "1"],
+            protocol: "groth16",
+            curve: "bn128"
+          },
+          publicInputs: {
+            pseudonym: pseudonym,
+            nullifier: nullifier,
+            commitmentHash: commitment,
+            registryRoot: "0".repeat(64),
+            challenge: challenge
+          },
+          bbsProof: {
+            proof: btoa("demo-bbs-proof-" + timestamp),
+            revealedMessages: {
+              "0": commitment,
+              "1": "UniversityDegree",
+              "2": "did:example:issuer"
+            },
+            revealedIndices: [0, 1, 2],
+            issuerPublicKey: "demo-pk-" + Math.random().toString(16).substring(2, 10),
+            nonce: challenge.substring(0, 16)
+          },
+          commitmentHash: commitment
+        }
+      }, null, 2);
+      
+      showStatus('Sample proof loaded. Click "Verify Authentication" to test.', 'info');
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadStatus();
+    });
+  </script>
+</body>
+</html>

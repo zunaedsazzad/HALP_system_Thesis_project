@@ -1,0 +1,21 @@
+{
+  "name": "wallet-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.130",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1",
+    "circomlibjs": "^0.1.7",
+    "keytar": "^7.9.0",
+    "snarkjs": "^0.7.4"
+  }
+}
